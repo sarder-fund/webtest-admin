@@ -25952,18 +25952,26 @@ body.dark-mode .btn-outline{border-color:var(--gold-300)!important;color:var(--g
                     if (typeof window._firestore === 'undefined') { container.innerHTML =
                             '<div style="text-align:center;padding:40px;color:var(--maroon-600);">❌ Firebase সংযোগ নেই</div>';
                         return; }
-                    const { getDocs, collection, query, orderBy } = window._firestore;
-                    const snap = await getDocs(query(collection(window._firestoreDb, 'backups'), orderBy('timestamp',
-                        'desc')));
+                    const { getDocs, collection } = window._firestore;
+                    let snap;
+                    try {
+                        const { query, orderBy } = window._firestore;
+                        snap = await getDocs(query(collection(window._firestoreDb, 'backups'), orderBy('timestamp', 'desc')));
+                    } catch (orderedErr) {
+                        snap = await getDocs(collection(window._firestoreDb, 'backups'));
+                    }
                     if (snap.empty) {
                         container.innerHTML =
                             `<div style="text-align:center;padding:40px;color:var(--ink-soft);"><span style="font-size:36px;">📭</span><br>কোনো ব্যাকআপ পাওয়া যায়নি।</div>`;
                         return;
                     }
                     let items = '';
-                    snap.forEach(d => {
-                        const data = d.data();
-                        const id = d.id;
+                    const rows = [];
+                    snap.forEach(d => rows.push({ id: d.id, data: d.data() }));
+                    rows.sort((a, b) => String(b.data.timestamp || b.data.date || '').localeCompare(
+                        String(a.data.timestamp || a.data.date || '')
+                    ));
+                    rows.forEach(({ id, data }) => {
                         const dateStr = data.date || (data.timestamp ? data.timestamp.split('T')[0] : 'অজানা');
                         const note = data.note || 'কোনো নোট নেই';
                         const timeStr = data.timestamp ? new Date(data.timestamp).toLocaleString('bn-BD', {
