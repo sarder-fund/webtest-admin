@@ -21728,7 +21728,13 @@ body.dark-mode .btn-outline{border-color:var(--gold-300)!important;color:var(--g
         const impDry = (type, rows) => {
             const snap = JSON.stringify({ members: state.members, monthly: state.monthly, yearly: state.yearly, expenses: state.expenses });
             try { return IMP_RUN[type](rows); }
-            finally { const o = JSON.parse(snap); state.members = o.members; state.monthly = o.monthly; state.yearly = o.yearly; state.expenses = o.expenses; }
+            finally {
+                const o = JSON.parse(snap);
+                state.members = o.members;
+                state.monthly = o.monthly;
+                state.yearly = o.yearly;
+                state.expenses = o.expenses;
+            }
         };
         const impEsc = (s) => escapeHtml(String(s == null ? '' : s));
         const impCopyText = (type, fname, E, W) => 'ইমপোর্ট ত্রুটি — ' + IMP_META[type].label + ' — ফাইল: ' + fname + '\n' + E.map(x => 'সারি ' + x.row + (x.col ? ' · ' + x.col : '') + ': ' + x.msg).join('\n') + (W.length ? '\n\nসতর্কতা:\n' + W.map(x => 'সারি ' + x.row + ': ' + x.msg).join('\n') : '');
@@ -26073,7 +26079,13 @@ body.dark-mode .btn-outline{border-color:var(--gold-300)!important;color:var(--g
                 }
 
                 log('সার্ভিস ওয়ার্কার রেজিস্টার করা হচ্ছে (/firebase-messaging-sw.js)...');
-                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                let registration;
+                try {
+                    registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                } catch (swError) {
+                    warn('Firebase Messaging সার্ভিস ওয়ার্কার পাওয়া যায়নি: ' + swError.message);
+                    return { ok: false, msg: 'পুশ সার্ভিস ওয়ার্কার পাওয়া যায়নি। firebase-messaging-sw.js ডেপ্লয়ে দিন।' };
+                }
                 // 🔧 [v16.5.68] নোটিফিকেশন-ক্লিকে 404 ঠিক করতে: এই পেজের আসল ঠিকানা SW-কে জানিয়ে রাখা (অ্যাপ বন্ধ থাকলে ক্লিকে ঠিক এই পেজই খুলবে)
                 try { const _c = await caches.open('mf-app'); await _c.put('pagePath', new Response(location.origin + location.pathname)); } catch (e) { }
                 log('✅ সার্ভিস ওয়ার্কার রেজিস্টার সফল।');
@@ -26346,6 +26358,8 @@ body.dark-mode .btn-outline{border-color:var(--gold-300)!important;color:var(--g
                 applyGateStatus('not-admin');
             }
         }
+        window.evaluateOwnGateStatus = evaluateOwnGateStatus;
+        window.getLastOwnUserStatus = () => _lastOwnUserStatus;
         function watchOwnUserStatus(user) {
             if (unsubscribeOwnUserDoc) { unsubscribeOwnUserDoc(); unsubscribeOwnUserDoc = null; }
             _lastOwnUserStatus = null;
